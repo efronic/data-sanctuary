@@ -2,10 +2,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from "next/image";
-import { Authenticated, Unauthenticated } from 'convex/react';
 import { ModeToggle } from '@/components/ui/mode-toggle';
-import { SignInButton, UserButton } from '@clerk/nextjs';
-import { Button } from '@/components/ui/button';
 import { HeaderActions } from './header-actions';
 
 
@@ -36,14 +33,7 @@ export function Header() {
                 </button>
             </div>
 
-            <div className="w-full block flex-grow lg:flex lg:items-center lg:w-auto">
-                <Authenticated>
-                    <div className="text-sm lg:flex-grow">
-                        <Link href="/dashboard" className="block mt-4 lg:inline-block lg:mt-0 text-teal-lighter hover:text-white mr-4">
-                            Dashboard
-                        </Link>
-                    </div>
-                </Authenticated>
+            <div className="w-full block lg:flex lg:items-end lg:w-auto">
                 <div className='flex gap-4'>
                     <ModeToggle />
                     <HeaderActions />
