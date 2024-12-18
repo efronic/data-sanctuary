@@ -1,27 +1,55 @@
 import { mutation, query } from './_generated/server';
 import { ConvexError, v } from "convex/values";
 
-export const getDocuments = query({
-    async handler(ctx) {
-        const userId = (await ctx.auth.getUserIdentity())?.tokenIdentifier;
-        if (!userId) {
-            return [];
+export const generateUploadUrl = mutation(async (ctx) => {
+	return await ctx.storage.generateUploadUrl();
+});
 
-        }
-        return await ctx.db.query('documents').withIndex('by_tokenIdentifer', (q) => q.eq('tokenIdentifer', userId)).collect();
-    }
+export const getDocuments = query({
+	async handler(ctx) {
+		const userId = (await ctx.auth.getUserIdentity())?.tokenIdentifier;
+		if (!userId) {
+			return [];
+		}
+		return await ctx.db.query('documents').withIndex('by_tokenIdentifier', (q) => q.eq('tokenIdentifier', userId)).collect();
+	}
 })
+export const getDocument = query({
+	args: {
+		documentId: v.id('documents'),
+	},
+	async handler(ctx, args) {
+		const userId = (await ctx.auth.getUserIdentity())?.tokenIdentifier;
+
+			if (!userId) {
+			return null;
+		}
+
+			const document = await ctx.db.get( args.documentId);
+
+			if (!document) {
+			return null;
+		}
+
+			if (document.tokenIdentifier !== userId) {
+			return null;
+		}
+
+			return { ...document, documentUrl: await ctx.storage.getUrl(document.fieldId) };
+	}
+}) 
 
 export const createDocument = mutation({
-    args: {
-        title: v.string(),
-    },
-    async handler(ctx, args) {
-        const userId = (await ctx.auth.getUserIdentity())?.tokenIdentifier;
-        if (!userId) {
-            throw new ConvexError('Not authenticated');
-        }
-        await ctx.db.insert('documents', { title: args.title, tokenIdentifer: userId });
+	args: {
+		title: v.string(),
+			fieldId: v.id('_storage'),
+	},
+	async handler(ctx, args) {
+		const userId = (await ctx.auth.getUserIdentity())?.tokenIdentifier;
+		if (!userId) {
+			throw new ConvexError('Not authenticated');
+		}
+		await ctx.db.insert('documents', { title: args.title, tokenIdentifier: userId, fieldId: args.fieldId});
 
-    },
+	},
 })
