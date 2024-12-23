@@ -72,6 +72,15 @@ export function ChatPanel({ documentId }: { documentId: Id<'documents'> }) {
       });
     }
   }, [chats]);
+  // Scroll to the bottom when the chat panel is opened
+  useEffect(() => {
+    if (isOpen && chatContainerRef.current) {
+      chatContainerRef.current.scrollTo({
+        top: chatContainerRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
+    }
+  }, [isOpen]);
   return (
     <div className='fixed bottom-4 right-4 z-50'>
       {!isOpen && (
