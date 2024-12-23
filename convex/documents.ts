@@ -1,12 +1,50 @@
-import { action, mutation, query } from './_generated/server';
+import {
+  action,
+  internalQuery,
+  mutation,
+  MutationCtx,
+  query,
+  QueryCtx,
+} from './_generated/server';
 import { ConvexError, v } from 'convex/values';
-import { api } from './_generated/api';
+import { api, internal } from './_generated/api';
 import OpenAI from 'openai';
+import { Id } from './_generated/dataModel';
 
 const openai = new OpenAI({
   apiKey: process.env.DATA_SANCTUARY_OPENAI_KEY,
 });
 
+export async function hasAccessToDocument(
+  ctx: MutationCtx | QueryCtx,
+  documentId: Id<'documents'>
+) {
+  const userId = (await ctx.auth.getUserIdentity())?.tokenIdentifier;
+
+  if (!userId) {
+    return false;
+  }
+
+  const document = await ctx.db.get(documentId);
+
+  if (!document) {
+    return null;
+  }
+
+  if (document.tokenIdentifier !== userId) {
+    return null;
+  }
+  return { document, userId };
+}
+
+export const hasAccessToDocumentQuery = internalQuery({
+  args: {
+    documentId: v.id('documents'),
+  },
+  async handler(ctx, args) {
+    return await hasAccessToDocument(ctx, args.documentId);
+  },
+});
 
 export const generateUploadUrl = mutation(async (ctx) => {
   return await ctx.storage.generateUploadUrl();
@@ -29,25 +67,14 @@ export const getDocument = query({
     documentId: v.id('documents'),
   },
   async handler(ctx, args) {
-    const userId = (await ctx.auth.getUserIdentity())?.tokenIdentifier;
-
-    if (!userId) {
-      return null;
-    }
-
-    const document = await ctx.db.get(args.documentId);
-
-    if (!document) {
-      return null;
-    }
-
-    if (document.tokenIdentifier !== userId) {
+    const accessObj = await hasAccessToDocument(ctx, args.documentId);
+    if (!accessObj) {
       return null;
     }
 
     return {
-      ...document,
-      documentUrl: await ctx.storage.getUrl(document.fileId),
+      ...accessObj.document,
+      documentUrl: await ctx.storage.getUrl(accessObj.document.fileId),
     };
   },
 });
@@ -76,21 +103,23 @@ export const askQuestion = action({
     documentId: v.id('documents'),
   },
   async handler(ctx, args) {
-    const userId = (await ctx.auth.getUserIdentity())?.tokenIdentifier;
-    if (!userId) {
-      throw new ConvexError('Not authenticated');
+    const accessObj = await ctx.runQuery(
+      internal.documents.hasAccessToDocumentQuery,
+      { documentId: args.documentId }
+    );
+
+    if (!accessObj) {
+      throw new ConvexError('You do not have access to this document');
     }
-    const document = await ctx.runQuery(api.documents.getDocument, {
-      documentId: args.documentId,
-    });
-    if (!document) {
-      throw new ConvexError('Document not found');
-    }
-    const file = await ctx.storage.get(document.fileId);
+
+    const file = await ctx.storage.get(accessObj.document.fileId);
+
     if (!file) {
       throw new ConvexError('File not found');
     }
+
     const text = await file.text();
+
     const chatCompletion: OpenAI.Chat.Completions.ChatCompletion =
       await openai.chat.completions.create({
         messages: [
@@ -100,11 +129,29 @@ export const askQuestion = action({
           },
           {
             role: 'user',
-            content: `please answer this question: ${args.question}`,
+            content: `Please answer this question, return the answer in well-formed HTML with proper Tailwind CSS classes for styling, the page uses shadcn for theming, make the response follow the active theme in place: ${args.question}`,
           },
         ],
         model: 'gpt-3.5-turbo',
       });
-    return chatCompletion.choices[0].message.content;
+    console.log('chatCompletion', chatCompletion);
+
+    await ctx.runMutation(internal.chats.createChatRecord, {
+      documentId: args.documentId,
+      text: args.question,
+      isHuman: true,
+      tokenIdentifier: accessObj.userId,
+    });
+
+    const response =
+      chatCompletion.choices[0].message.content ?? 'No response from AI';
+
+    await ctx.runMutation(internal.chats.createChatRecord, {
+      documentId: args.documentId,
+      text: response,
+      isHuman: false,
+      tokenIdentifier: accessObj.userId,
+    });
+    return response;
   },
 });
