@@ -150,7 +150,7 @@ export function ChatPanel({ documentId }: { documentId: Id<'documents'> }) {
                 />
                 <LoadingButton
                   isLoading={form.formState.isSubmitting}
-                  loadingText='Asking...'
+                  loadingText='Thinking...'
                 >
                   Ask
                 </LoadingButton>
