@@ -26,8 +26,9 @@ export function Header() {
           Data Sanctuary
         </Link>
         <nav className='ml-4 border-l border-white pl-4'>
-          <Link href='/documents'>Documents</Link>
-          <Link href='/about' className='ml-4'>About</Link>
+          <Link href='/dashboard/documents'>Documents</Link>
+          <Link href='/dashboard/notes' className='ml-4'>Notes</Link>
+          <Link href='/dashboard/about' className='ml-4'>Settings</Link>
         </nav>
       </div>
       <div className='block lg:hidden'>
