@@ -53,3 +53,23 @@ export const createNote = mutation({
     return note;
   },
 });
+
+export const deleteNote = mutation({
+  args: {
+    noteId: v.id('notes'),
+  },
+  async handler(ctx, args) {
+    const userId = (await ctx.auth.getUserIdentity())?.tokenIdentifier;
+    if (!userId) {
+      throw new Error('Unauthorized');
+    }
+    const note = await ctx.db.get(args.noteId);
+    if (!note) {
+      throw new Error('Note not found');
+    }
+    if (note.tokenIdentifier !== userId) {
+      throw new Error('Unauthorized');
+    }
+    await ctx.db.delete(args.noteId);
+  },
+});

@@ -22,11 +22,11 @@ export default function DocumentPage({
   });
 
   return (
-    <main className='p-24 space-y-8'>
+    <main className='w-full p-24 space-y-8'>
       {document && (
-        <div className='flex justify-between items-center'>
+        <div className='flex justify-between items-center gap-8'>
           <h1 className='text-4xl font-bold'>{document.title}</h1>
-          <DeleteDocumentButton documentId={document._id} />
+          <DeleteDocumentButton documentId={document._id}/>
         </div>
 
       )}

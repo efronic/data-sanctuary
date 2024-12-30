@@ -11,8 +11,9 @@ import {
   import { Button } from '@/components/ui/button';
   import { api } from '@/convex/_generated/api';
   import { Id } from '@/convex/_generated/dataModel';
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@radix-ui/react-tooltip';
   import { useMutation } from 'convex/react';
-  import { TrashIcon } from 'lucide-react';
+  import { Trash } from 'lucide-react';
   import { useRouter } from 'next/navigation';
   import { useState } from 'react';
   
@@ -30,9 +31,21 @@ import {
       <AlertDialog open={isOpen} onOpenChange={(open) => setIsOpen(open)}>
         <AlertDialogTrigger asChild>
           <div>
-            <Button variant='destructive' className='flex items-center gap-2'>
-              <TrashIcon className='w-4 h-4' /> Delete Document
-            </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant='destructive'
+                  className='flex items-center gap-2'
+                >
+                  <Trash />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className='border p-2 rounded-md bg-red-800 text-white'>
+                <p>Delete Note</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           </div>
         </AlertDialogTrigger>
         <AlertDialogContent>
@@ -51,7 +64,7 @@ import {
                 await deleteDocument({ documentId });
                 setIsLoading(false);
                 setIsOpen(false);
-                router.push('/');
+                router.push('/dashboard/documents');
               }}
               disabled={isLoading}
             >

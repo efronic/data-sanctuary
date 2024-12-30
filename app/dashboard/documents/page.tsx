@@ -6,12 +6,11 @@ import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
 import UploadDocumentButton from './upload-document-button';
-import { DocumentCard } from '@/app/document-card';
+import { DocumentCard } from '@/app/dashboard/documents/document-card';
 
 export default function Home() {
   const createDocument = useMutation(api.documents.createDocument);
   const documents = useQuery(api.documents.getDocuments);
-console.log('documents', documents);
   return (
     <main className='w-full  space-y-8'>
       <div className='flex justify-between items-center'>
