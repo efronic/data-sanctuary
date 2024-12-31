@@ -21,7 +21,7 @@ export default function NotesPage() {
         </ScrollArea>
       )}
       {note && (
-        <div className='border border-gray-300 p-4 rounded-md flex-1'>
+        <div className='border border-gray-300 p-4 rounded-md flex-1 whitespace-pre-wrap'>
           {note?.text.substring(0, 2500)}
         </div>
       )}
