@@ -13,23 +13,21 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { useMutation } from 'convex/react';
+import { useAction, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { LoadingButton } from '@/components/loading-button';
-import { Id } from '@/convex/_generated/dataModel';
-import { Textarea } from '@/components/ui/textarea';
 
 const formSchema = z.object({
   text: z.string().min(1).max(5000),
 });
 
-export default function CreateNoteForm({
-  onUpload,
+export default function SearchForm({
+  setResults,
 }: {
-  onUpload: () => void;
+  setResults: (result: typeof api.search.searchAction._returnType) => void;
 }) {
-  const createNote = useMutation(api.notes.createNote);
-
+  const searchAction = useAction(api.search.searchAction);
+    
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -38,24 +36,25 @@ export default function CreateNoteForm({
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-
-    await createNote({
-      text: values.text,
+    await searchAction({
+        search: values.text,
+    }).then((res) => {
+        setResults(res);
     });
-    onUpload();
+    form.reset();
   }
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-8'>
+      <form onSubmit={form.handleSubmit(onSubmit)} className='flex w-full space-x-2 space-y-8'>
         <FormField
           control={form.control}
           name='text'
           render={({ field }) => (
-            <FormItem>
-              <FormLabel>Title</FormLabel>
+            <FormItem className='flex-1'>
+              <FormLabel>Search for anything across all the documents and notes</FormLabel>
               <FormControl>
-                <Textarea rows={8} placeholder='Your note' {...field} />
+                <Input placeholder='Search' {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -63,9 +62,9 @@ export default function CreateNoteForm({
         />
         <LoadingButton
           isLoading={form.formState.isSubmitting}
-          loadingText='Creating...'
+          loadingText='Search...'
         >
-          Create
+          Search
         </LoadingButton>
       </form>
     </Form>

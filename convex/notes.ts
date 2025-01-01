@@ -1,5 +1,12 @@
 import { v } from 'convex/values';
-import { mutation, query } from './_generated/server';
+import {
+  internalAction,
+  internalMutation,
+  mutation,
+  query,
+} from './_generated/server';
+import { embed } from '../lib/utils';
+import { internal } from './_generated/api';
 
 export const getNote = query({
   args: {
@@ -71,5 +78,35 @@ export const deleteNote = mutation({
       throw new Error('Unauthorized');
     }
     await ctx.db.delete(args.noteId);
+  },
+});
+
+export const setNoteEmbedding = internalMutation({
+  args: {
+    noteId: v.id('notes'),
+    embedding: v.array(v.number()),
+  },
+  async handler(ctx, args) {
+    await ctx.db.patch(args.noteId, {
+      embedding: args.embedding,
+    });
+  },
+});
+
+export const createNoteEmbedding = internalAction({
+  args: {
+    noteId: v.id('notes'),
+    text: v.string(),
+  },
+  async handler(ctx, args) {
+    const userId = (await ctx.auth.getUserIdentity())?.tokenIdentifier;
+    if (!userId) {
+      throw new Error('Unauthorized');
+    }
+    const embedding = await embed(args.text);
+    await ctx.runMutation(internal.notes.setNoteEmbedding, {
+      noteId: args.noteId,
+      embedding,
+    });
   },
 });

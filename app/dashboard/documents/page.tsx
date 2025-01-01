@@ -12,7 +12,7 @@ export default function Home() {
   const createDocument = useMutation(api.documents.createDocument);
   const documents = useQuery(api.documents.getDocuments);
   return (
-    <main className='w-full  space-y-8'>
+    <main className='w-full space-y-8'>
       <div className='flex justify-between items-center'>
         <h1 className='text-4xl font-bold'>My Documents</h1>
         <UploadDocumentButton />
@@ -20,7 +20,10 @@ export default function Home() {
       {!documents && (
         <div className='grid grid-cols-3 gap-8'>
           {new Array(8).fill('').map((_, i) => (
-            <Card className='h-[200px] p-6 flex flex-col justify-between' key={i}>
+            <Card
+              className='h-[200px] p-6 flex flex-col justify-between'
+              key={i}
+            >
               <Skeleton className='h-[20px] rounded' />
               <Skeleton className='h-[20px] rounded' />
               <Skeleton className='h-[20px] rounded' />

@@ -12,6 +12,7 @@ import { ConvexError, v } from 'convex/values';
 import { api, internal } from './_generated/api';
 import OpenAI from 'openai';
 import { Id } from './_generated/dataModel';
+import { embed } from '../lib/utils';
 
 const openai = new OpenAI({
   apiKey: process.env.DATA_SANCTUARY_OPENAI_KEY,
@@ -132,13 +133,14 @@ export const generateDocumentDescription = internalAction({
         ],
         model: 'gpt-3.5-turbo',
       });
-    const response =
+    const description =
       chatCompletion.choices[0].message.content ??
       'could not figure out the description for this document';
-
+      const embedding = await embed(description);
     await ctx.runMutation(internal.documents.updateDocumentDescription, {
       documentId: args.documentId,
-      description: response,
+      description: description,
+      embedding: embedding,
     });
   },
 });
@@ -146,10 +148,12 @@ export const updateDocumentDescription = internalMutation({
   args: {
     documentId: v.id('documents'),
     description: v.string(),
+    embedding: v.array(v.float64()),
   },
   async handler(ctx, args) {
     await ctx.db.patch(args.documentId, {
       description: args.description,
+      embedding: args.embedding,
     });
   },
 });
@@ -227,5 +231,34 @@ export const deleteDocument = mutation({
     }
     await ctx.storage.delete(accessObj.document.fileId);
     await ctx.db.delete(args.documentId);
+  },
+});
+export const setDocumentEmbedding = internalMutation({
+  args: {
+    documentId: v.id('documents'),
+    embedding: v.array(v.number()),
+  },
+  async handler(ctx, args) {
+    await ctx.db.patch(args.documentId, {
+      embedding: args.embedding,
+    });
+  },
+});
+
+export const createDocumentEmbedding = internalAction({
+  args: {
+    documentId: v.id('documents'),
+    text: v.string(),
+  },
+  async handler(ctx, args) {
+    const userId = (await ctx.auth.getUserIdentity())?.tokenIdentifier;
+    if (!userId) {
+      throw new Error('Unauthorized');
+    }
+    const embedding = await embed(args.text);
+    await ctx.runMutation(internal.documents.setDocumentEmbedding, {
+      documentId: args.documentId,
+      embedding,
+    });
   },
 });
